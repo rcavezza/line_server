@@ -1,6 +1,6 @@
 Line Server README
 
-* The System
+== The System
 
 Line server returns the text of a line from an immutable file based on a given line number. If it finds the line, it will return the text of that line and a 200 status. If that line is not found, it will send a 413 status.
 
@@ -12,7 +12,7 @@ Send a request to 1/lines/5 to get the details for line 5.
 
 When a text file is first accessed, it will then create a cached value in a pstore so that file does not need to be opened again.
 
-* System Performance with larger files (1 GB, 10 GB, 100GB)
+== System Performance with larger files (1 GB, 10 GB, 100GB)
 
 The system performance should work well with larger files outside of the original preprocessing stage. I would expect 4 hours of preprocessing for a 1GB file, 40 hours for a 10GB file, and 400 hours for a 100GB file. While there may be ways to reduce this preprocessing time, that is the drawback of the current codebase. 
 
@@ -20,7 +20,7 @@ There could also potentially be memory usage issues as the pstore grows larger. 
 
 The search for files is close to O(1) once preprocessing is completed and the application is running. 
 
-* How would the system work with 100 users, 1,000 users, 100,000 users?
+== How would the system work with 100 users, 1,000 users, 100,000 users?
 
 The system should hold up fairly well for a large number of users. since the data will be accessed by very small files and an in memory cache system is in place, I expect the system to work very fast with load. 
 
@@ -28,7 +28,7 @@ Also, it is unclear to me how pstore would handle with large concurrent users. I
 
 A drawback of the current implementation of pstore is that it would only work on 1 node. If we wanted to scale this out, I would highly suggest replacing the pstore implementation with another solution like redis. 
 
-* Documentation consulted when doing this assignment
+== Documentation consulted when doing this assignment
 
 The following posts helped me get a decent option of different non database ways of storing data 
 https://muut.com/blog/technology/redis-as-primary-datastore-wtf.html 
@@ -39,7 +39,7 @@ http://www.platanus.cz/blog/working-with-huge-hashes-in-ruby
 
 I also used Stackoverflow and the Ruby standard library for dozens of syntax questions - especially with the File and FileUtils classes.
 
-* Third party libraries and tools the system uses
+== Third party libraries and tools the system uses
 
 The biggest tool I used for this is pstore. I'm unfamiliar with it, but thought I would use this exercise as a chance to familiarize myself with it. I ran into it when looking over alternative data storage methods. 
 
@@ -49,7 +49,7 @@ I also used File and FileUtils as libraries to help deal with working with creat
 
 I also installed RSpec to write tests.
 
-* How long did you spend on this exercise?
+== How long did you spend on this exercise?
 
 I didn't do it straight through, I worked in chunks. If I were to guess, I would probably say somewhere around 3 and a half hours. I had some initial hypotheses that turned out to not work as well as I had expected.
 
@@ -59,7 +59,7 @@ I would also write more tests around the LineFileReader class and how it handles
 
 For prioritization, I would definitely work on emptying pstore at a certain threshold automatically and making sure pstore would work at a certain scale. These are showstoppers that could bring down the application and the other issues pale in comparison.
 
-* If you were to critique your code, what would you say about it?
+== If you were to critique your code, what would you say about it?
 
 In general, the idea of creating many, many, files to be read instead of a database seems like a wonky solution to a problem. However, I wanted to keep the spirit of the problem alive and didn't want to go the database simple solution route.
 
@@ -71,19 +71,19 @@ I'm not very familiar with building shell scripts or what would be expected or n
 
 I also don't love how the specs use the live created files in order to run the tests. This was a "keep it simple, stupid" solution I came up with because I wasn't too familiar with best practices for how to handle dynamically created files in specs. 
 
-* Initial Project Ideas and Tradeoffs
+== Initial Project Ideas and Tradeoffs
 
 My initial ideas for this project was to either preprocess the data into a huge hash or create a full caching system.
 
 In the end, I created an aggregate of these two.
 
-* Large Hash Method
+== Large Hash Method
 
 Tradeoffs of using the preprocessing for the huge hash was that you would need preprocessing time and would have to create a large file. This eventually was the undoing for this method as there wasn't enough memory in my server to handle the huge hash. It would crash. 
 
 The theoretical pro's were that if everything was loaded into a large hash, you would always get O(1) for looking a line. 
 
-* Cache as you go method
+== Cache as you go method
 
 My thinking for this methodology was that users will only be looking at specific lines many, many times, and it wouldn't be useful to store everything in a large hash. For example, if the line server was for Romeo and Juliet, "To be or not to be, that is the question." would receive 90% of the load, so it wouldn't make sense to store everyting in a large hash when only a few lines are getting a majority of the traffic. 
 
@@ -93,7 +93,7 @@ The con would have been load time for very, very large files. Also, if many conc
 
 We would save on storage since we would only need duplicate storage to improve load times for the heavily checked for lines. 
 
-* Process and Eventual Method Used
+== Process and Eventual Method Used
 We went with the Large Hash Method since I thought it would be an interesting solution. 
 
 I was nervous about scale, so I quickly generated a 1.5GB test file. It was able to process and create the hash, but once you tried to open this hash in the console, the application would crash. 
