@@ -4,11 +4,11 @@ Line Server README
 
 Line server returns the text of a line from an immutable file based on a given line number. If it finds the line, it will return the text of that line and a 200 status. If that line is not found, it will send a 413 status.
 
-Run build.sh to build the environment. Run run.sh to start the server.
+Run +build.sh+ to build the environment. Run +run.sh+ to start the server.
 
-At a high level, the Line Server takes a potentially large file from the lib/assets/text/files folder and a rake task creates many smaller text files  - one for each line. Line 1 will be named 1.rb, for example. It creates those files outside of the project in a sister directory to the main application at ../text_files/lines/. 
+At a high level, the Line Server takes a potentially large file from the +lib/assets/text/files+ folder and a rake task creates many smaller text files  - one for each line. Line 1 will be named +1.rb+, for example. It creates those files outside of the project in a sister directory to the main application at +../text_files/lines/+. 
 
-Send a request to 1/lines/5 to get the details for line 5.
+Send a request to +1/lines/5+ to get the details for line 5.
 
 When a text file is first accessed, it will then create a cached value in a pstore so that file does not need to be opened again.
 
