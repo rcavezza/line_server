@@ -36,3 +36,9 @@ What third-party libraries or other tools does the system use? How did you choos
 How long did you spend on this exercise? If you had unlimited more time to spend on this, how would you spend it and how would you prioritize each item?
 If you were to critique your code, what would you have to say about it?
 The remainder of the files in your tree should be the source-code for your system.
+
+The intention is that this not be a huge undertaking (which we feel wouldn’t be fair to ask, and the last thing we want to do is discourage moving forward with the conversation).
+
+You can pick whatever language / framework / libraries are most comfortable. And the goal is to hit a solution that would provide a good basis for a code review discussion, balancing simplicity, efficiency, and clarity.
+
+I will say that there is the “simplest possible solution,” which is simply to load the lines into a database table. We try to encourage people to shoot for something a little more efficient than that (not requiring a copy of all the data), both from the perspective of making the exercise a little more interesting, and also because that “simplest possible solution” tends to put us in a zone where, when the web framework is used effectively, it means there’s practically no code to review.
