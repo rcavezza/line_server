@@ -1,0 +1,129 @@
+Line Server README
+
+* The System
+
+Line server returns the text of a line from an immutable file based on a given line number. If it finds the line, it will return the text of that line and a 200 status. If that line is not found, it will send a 413 status.
+
+Run build.sh to build the environment. Run run.sh to start the server.
+
+At a high level, the Line Server takes a potentially large file from the lib/assets/text/files folder and a rake task creates many smaller text files  - one for each line. Line 1 will be named 1.rb, for example. It creates those files outside of the project in a sister directory to the main application at ../text_files/lines/. 
+
+Send a request to 1/lines/5 to get the details for line 5.
+
+When a text file is first accessed, it will then create a cached value in a pstore so that file does not need to be opened again.
+
+* System Performance with larger files (1 GB, 10 GB, 100GB)
+
+The system performance should work well with larger files outside of the original preprocessing stage. I would expect 4 hours of preprocessing for a 1GB file, 40 hours for a 10GB file, and 400 hours for a 100GB file. While there may be ways to reduce this preprocessing time, that is the drawback of the current codebase. 
+
+There could also potentially be memory usage issues as the pstore grows larger. Since the pstore only grows larger with time and is really used as a mechanism to stop issues created from many concurrent users, we would likely want to empty that file periodically to prevent this issue.
+
+The search for files is close to O(1) once preprocessing is completed and the application is running. 
+
+* How would the system work with 100 users, 1,000 users, 100,000 users?
+
+The system should hold up fairly well for a large number of users. since the data will be accessed by very small files and an in memory cache system is in place, I expect the system to work very fast with load. 
+
+Also, it is unclear to me how pstore would handle with large concurrent users. In a production-read environment, I would probably use redis for this type of thing, but I learned of pstore while researching this project and wanted to dabble. I also wanted to keep external dependencies to a minimum for this assignment. The transaction blocks have me slightly concerned locking could be a potential issue for pstore and I was unable to find concrete answers.
+
+A drawback of the current implementation of pstore is that it would only work on 1 node. If we wanted to scale this out, I would highly suggest replacing the pstore implementation with another solution like redis. 
+
+* Documentation consulted when doing this assignment
+
+The following posts helped me get a decent option of different non database ways of storing data 
+https://muut.com/blog/technology/redis-as-primary-datastore-wtf.html 
+http://datamelon.io/blog/2015/persistent-key-value-storage-via-ruby-standard-lib.html
+
+I consulted the following when considering how to continue with creating a large hash to solve this problem
+http://www.platanus.cz/blog/working-with-huge-hashes-in-ruby
+
+I also used Stackoverflow and the Ruby standard library for dozens of syntax questions - especially with the File and FileUtils classes.
+
+* Third party libraries and tools the system uses
+
+The biggest tool I used for this is pstore. I'm unfamiliar with it, but thought I would use this exercise as a chance to familiarize myself with it. I ran into it when looking over alternative data storage methods. 
+
+I decided to use pstore instead of a system like redis, partially because I wanted to reduce external dependencies in this application. I also think pstore could be a potentially good use in this situation. We wanted to stay away from databases, pstore has a hash lookup which would make lookups very fast. I also expect this application to run on a single node (i.e., just someone's local server). If this was a production application which had to scale, redis probably would have been my solution here. 
+
+I also used File and FileUtils as libraries to help deal with working with creating files and folders. They are standard built-in Ruby libraries.
+
+I also installed RSpec to write tests.
+
+* How long did you spend on this exercise?
+
+I didn't do it straight through, I worked in chunks. If I were to guess, I would probably say somewhere around 3 and a half hours. I had some initial hypotheses that turned out to not work as well as I had expected.
+
+If I had unlimited time, I would go back and find a way to test pstore at scale. I would also do more research on pstore to understand how the transactions work internally and if there are any other things I need to tweak to help it not lock at scale, if that is an issue.
+
+I would also write more tests around the LineFileReader class and how it handles the creation of the line files. I would also create an extra spec for the rake task. 
+
+For prioritization, I would definitely work on emptying pstore at a certain threshold automatically and making sure pstore would work at a certain scale. These are showstoppers that could bring down the application and the other issues pale in comparison.
+
+* If you were to critique your code, what would you say about it?
+
+In general, the idea of creating many, many, files to be read instead of a database seems like a wonky solution to a problem. However, I wanted to keep the spirit of the problem alive and didn't want to go the database simple solution route.
+
+I can see how naming of the constants for where the original server lives and where the individual line files will live could be confusing. 
+
+I wasn't a huge fan of how I had to use LineFileCreator.new and Line.new (instead of Line.find syntax, that I would expect if this was using activerecord). 
+
+I'm not very familiar with building shell scripts or what would be expected or necessary in them. I'm a little concerned I need to add more to this in case someone downloads this project without rails installed on their machine. However, I assumed anyone looking at this code already has ruby and rails installed. 
+
+I also don't love how the specs use the live created files in order to run the tests. This was a "keep it simple, stupid" solution I came up with because I wasn't too familiar with best practices for how to handle dynamically created files in specs. 
+
+* Initial Project Ideas and Tradeoffs
+
+My initial ideas for this project was to either preprocess the data into a huge hash or create a full caching system.
+
+In the end, I created an aggregate of these two.
+
+* Large Hash Method
+
+Tradeoffs of using the preprocessing for the huge hash was that you would need preprocessing time and would have to create a large file. This eventually was the undoing for this method as there wasn't enough memory in my server to handle the huge hash. It would crash. 
+
+The theoretical pro's were that if everything was loaded into a large hash, you would always get O(1) for looking a line. 
+
+* Cache as you go method
+
+My thinking for this methodology was that users will only be looking at specific lines many, many times, and it wouldn't be useful to store everything in a large hash. For example, if the line server was for Romeo and Juliet, "To be or not to be, that is the question." would receive 90% of the load, so it wouldn't make sense to store everyting in a large hash when only a few lines are getting a majority of the traffic. 
+
+The pro side of using the file and then caching was that once the data would be in cache, it would be O(1) to retrieve an already retrieved line and O(log n) to get it before if we used something like binary search to traverse the file. 
+
+The con would have been load time for very, very large files. Also, if many concurrent users are accessing the file at the same time, it would create issues of having many files open at once and could potentially crash the system. 
+
+We would save on storage since we would only need duplicate storage to improve load times for the heavily checked for lines. 
+
+* Process and Eventual Method Used
+We went with the Large Hash Method since I thought it would be an interesting solution. 
+
+I was nervous about scale, so I quickly generated a 1.5GB test file. It was able to process and create the hash, but once you tried to open this hash in the console, the application would crash. 
+
+Here's a crude first rough version of the preprocessing
+
+The initial rough draft inception of the rake task looked like: 
+
+  desc "Create Hash based on textfile"
+  task create_large_hash: :environment do
+    return unless File.exist?('lib/assets/text_filesfile_small.txt')
+    new_file = File.new('app/models/line_constant.rb', 'w+') 
+    new_file.write("class LineConstant \n")
+    new_file.write("  FILE_LINES = { \n")
+    last_index = 0
+    File.foreach('lib/assets/text_files/file.txt').with_index do |line, index| 
+      if index < 500000
+        new_file.write("    #{index+1} => '#{line.gsub(/\n/,"")}', \n")
+      end
+      last_index = index
+    end
+    puts last_index
+    new_file.write("  } \n")
+    new_file.write('end')
+    File.delete('lib/assets/file_small.txt')
+  end
+
+I wanted to stay with this use case, so I thought about other possible scenarios. Instead of getting a user to search through the large file, I decided preprocessing could be used to create numerous files - one for each line to make search easier. 
+
+Then, I decided in order to avoid issues with too many files open at once or file locking, I would store previously accessed files in some type of cache. I eventually went with pstore for simplicity. 
+
+As in the original method, the main trade-off with this method is preprocessing that is necessary at the very beginning before launch. However, since we're looking at separate files and not a huge cache, there shouldn't be any issues with in-memory storage being too large. We'll want to periodically clean out the cache to avoid memory issues, but the search should be very quick when the cache is empty because it should be O(1) to find the file quickly since it's a quick lookup based on the line number. Looking for line 24? Just open 24.rb. 
+
